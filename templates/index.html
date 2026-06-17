@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Notes Hub</title>
+    <meta name="description" content="Stay updated with the latest Google Cloud BigQuery release notes and features, select updates, and share them directly to X/Twitter.">
+    
+    <!-- Google Fonts: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- App Container -->
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z" fill="var(--color-primary)" opacity="0.85"/>
+                        <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="var(--color-primary-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h1>BigQuery <span class="accent-text">Release Notes</span></h1>
+            </div>
+            
+            <div class="header-actions">
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span id="last-updated-text">Checking...</span>
+                </div>
+                <button id="refresh-btn" class="btn btn-secondary" title="Refresh Release Notes">
+                    <i data-lucide="refresh-cw" class="icon-refresh"></i>
+                    <span>Refresh</span>
+                </button>
+            </div>
+        </header>
+        
+        <!-- Main Layout -->
+        <main class="app-body">
+            <!-- Sidebar Controls -->
+            <aside class="app-sidebar">
+                <div class="sidebar-widget">
+                    <h3>Search</h3>
+                    <div class="search-box">
+                        <i data-lucide="search" class="search-icon"></i>
+                        <input type="text" id="search-input" placeholder="Search updates..." autocomplete="off">
+                    </div>
+                </div>
+                
+                <div class="sidebar-widget">
+                    <h3>Filter by Type</h3>
+                    <ul class="filter-list" id="filter-list">
+                        <li class="filter-item active" data-filter="all">
+                            <i data-lucide="layers" class="filter-icon"></i>
+                            <span>All Updates</span>
+                            <span class="count-badge" id="count-all">0</span>
+                        </li>
+                        <li class="filter-item" data-filter="feature">
+                            <i data-lucide="sparkles" class="filter-icon color-feature"></i>
+                            <span>Features</span>
+                            <span class="count-badge bg-feature" id="count-feature">0</span>
+                        </li>
+                        <li class="filter-item" data-filter="announcement">
+                            <i data-lucide="megaphone" class="filter-icon color-announcement"></i>
+                            <span>Announcements</span>
+                            <span class="count-badge bg-announcement" id="count-announcement">0</span>
+                        </li>
+                        <li class="filter-item" data-filter="deprecation">
+                            <i data-lucide="alert-triangle" class="filter-icon color-deprecation"></i>
+                            <span>Deprecations</span>
+                            <span class="count-badge bg-deprecation" id="count-deprecation">0</span>
+                        </li>
+                        <li class="filter-item" data-filter="fix">
+                            <i data-lucide="check-circle" class="filter-icon color-fix"></i>
+                            <span>Fixes / Changes</span>
+                            <span class="count-badge bg-fix" id="count-fix">0</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="sidebar-footer">
+                    <p>Feeds source: <a href="https://docs.cloud.google.com/feeds/bigquery-release-notes.xml" target="_blank" rel="noopener">Google Cloud XML</a></p>
+                </div>
+            </aside>
+            
+            <!-- Content Area -->
+            <section class="app-content">
+                <!-- Loading State -->
+                <div id="loading-state" class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Fetching latest release notes...</p>
+                </div>
+                
+                <!-- Error State -->
+                <div id="error-state" class="error-state hidden">
+                    <i data-lucide="alert-circle" class="error-icon"></i>
+                    <h2>Failed to Load Notes</h2>
+                    <p id="error-message">Something went wrong while fetching the release notes feed.</p>
+                    <button id="retry-btn" class="btn btn-primary">Try Again</button>
+                </div>
+                
+                <!-- Empty State -->
+                <div id="empty-state" class="empty-state hidden">
+                    <i data-lucide="info" class="empty-icon"></i>
+                    <h2>No Updates Found</h2>
+                    <p>Try clearing your search or filters to see all release notes.</p>
+                </div>
+                
+                <!-- Notes Feed -->
+                <div id="notes-container" class="notes-container"></div>
+            </section>
+        </main>
+        
+        <!-- Tweet Composer Modal -->
+        <div id="tweet-modal" class="modal-overlay hidden">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <div class="modal-title-area">
+                        <i data-lucide="twitter" class="twitter-brand-color"></i>
+                        <h2>Tweet about this update</h2>
+                    </div>
+                    <button id="close-modal-btn" class="btn-close" title="Close modal">&times;</button>
+                </div>
+                
+                <div class="modal-body">
+                    <!-- Instruction -->
+                    <div class="modal-instruction">
+                        <p class="instruction-title"><strong>Step 1: Select the text you want to tweet</strong></p>
+                        <p class="instruction-desc">Click on any section of the release note below to draft your tweet automatically, or write your own.</p>
+                    </div>
+                    
+                    <!-- Selection Canvas -->
+                    <div class="tweet-selector-canvas" id="tweet-selector-canvas">
+                        <!-- Populated by JS -->
+                    </div>
+                    
+                    <!-- Composer Form -->
+                    <div class="tweet-composer-area">
+                        <p class="instruction-title"><strong>Step 2: Customise your Tweet</strong></p>
+                        <div class="textarea-wrapper">
+                            <textarea id="tweet-textarea" placeholder="What's happening?"></textarea>
+                        </div>
+                        
+                        <div class="composer-footer">
+                            <div class="character-counter">
+                                <svg class="progress-ring" width="24" height="24">
+                                    <circle class="progress-ring-bg" stroke="#333" stroke-width="2" fill="transparent" r="10" cx="12" cy="12"/>
+                                    <circle class="progress-ring-indicator" stroke="var(--color-accent)" stroke-width="2" fill="transparent" r="10" cx="12" cy="12" id="progress-circle"/>
+                                </svg>
+                                <span id="char-count-text">280</span>
+                            </div>
+                            
+                            <button id="publish-tweet-btn" class="btn btn-primary btn-tweet">
+                                <i data-lucide="send" class="icon-send"></i>
+                                <span>Post to X</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
